@@ -42,7 +42,6 @@ sub Initialization {
     'file|f=s'  => \$ctlFile
     );
   # Call help screen or do the analysis
-  print $opt_h;
   if (defined $opt_h) { &do_help; }
 }
 
