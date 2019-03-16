@@ -38,11 +38,12 @@ sub Initialization {
   my ($ctlFile, $opt_h);
 	# Get the input parameters from command line
   GetOptions (
-    'help|h'    => \$opt_h,
-    'file|f=s'  => \$ctlFile
+    'help|h' => \$opt_h,
+    'file|f' => \$ctlFile
     );
   # Call help screen or do the analysis
   if (defined $opt_h) { &do_help; }
+  if (defined $ctlFile) { print "$0 pipeline configure file is missing!!\n"; &do_help;}
 }
 
 
