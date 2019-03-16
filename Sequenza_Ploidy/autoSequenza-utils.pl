@@ -42,7 +42,7 @@ sub Initialization {
     'file|f=s'  => \$ctlFile
     );
   # Call help screen or do the analysis
-  if (defined $opt_h) { &do_help; }
+  if (defined $opt_h || scalar @ARGV == 0) { &do_help; }
 }
 
 
