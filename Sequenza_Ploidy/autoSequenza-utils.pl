@@ -43,7 +43,7 @@ sub Initialization {
     );
   # Call help screen or do the analysis
   if (defined $opt_h) { &do_help; }
-  if (undef $ctlFile) { print "$0 pipeline configure file is missing!!\n"; &do_help;}
+  if (!defined $ctlFile) { print "$0 pipeline configure file is missing!!\n"; &do_help;}
 }
 
 
