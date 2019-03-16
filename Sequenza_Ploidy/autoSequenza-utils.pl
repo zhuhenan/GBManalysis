@@ -3,8 +3,8 @@ format HEADER =
 | Purpose : This is pipeine for running Sequenza-utils to prepare seqz file
 |
 |  Options:
-|    -h    Give help screen
-|    -f    Control file
+|    --help, -h    Give help screen
+|    --file, -f    Control file
 |
 |  Example:
 |    autoSequenza-utils.pl -f /YOUR/CONTROL/FILE
@@ -42,7 +42,7 @@ sub Initialization {
     'file|f=s'  => \$ctlFile
     );
   # Call help screen or do the analysis
-  if (defined $opt_h || scalar @ARGV == 0) { &do_help; }
+  if (defined $opt_h) { &do_help; }
 }
 
 
