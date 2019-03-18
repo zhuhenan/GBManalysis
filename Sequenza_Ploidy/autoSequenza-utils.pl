@@ -30,11 +30,14 @@ my ($ctlFile, $opt_h, %User_Preferences);
 
 # Get the input parameters from command line
 # Call help screen or do the analysis
-GetOptions ('help|h' => \$opt_h, 'file|f' => \$ctlFile);
+GetOptions ('help|h' => \$opt_h, 'file|f=s' => \$ctlFile)
+or die("Error in command line arguments\n");
 if (defined $opt_h) { &do_help; }
 # Read configure file and set user-perference parameters
+print ">",$ctlFile,"\n";
 open(my $conf, "<", $ctlFile);
-while (<$conf> {
+
+while (<$conf>) {
   chomp;               # no newline
   s/#.*|^\s+|\s+$//g;  # no comments, no leading white, no trailing white
   next unless length;  # anything left?
@@ -52,6 +55,8 @@ for (my $i = 1; $i < scalar @bams; $i ++) {
   &mergefrag(\%User_Preferences, $Sample);
   # Call "seqz_binning" function to bin seqz, reduce memory;
   &seqz_binning(\%User_Preferences, $Sample);
+  # Add seqz format header back
+  &add_seqz_header(\%User_Preferences, $Sample);
   # Clean intermedia files
   &clean($Sample);
   # run Sequenza
@@ -74,12 +79,12 @@ sub bam2seqz {
   $command  = "sequenza-utils bam2seqz -n $normal -t $tumour";
   $command .= " -gc ".$User_Preferences->{"GC"};
   $command .= " -F ".$User_Preferences->{"REF"};
-  $command .= " -o ".$User_Preferences->{"OUTPUT"}."seqz";
+  $command .= " -o $Sample.seqz";
   $command .= " -C ".$User_Preferences->{"CHR"};
   $command .= " --parallel ".$User_Preferences->{"PARALLEL"};
   # Processing
-  print $command,"\n";
-  #system $command;
+  print $command,"\n\n";
+  system $command;
 }
 
 # ------------------------------------------------------------------------------------------------------------------
@@ -91,14 +96,18 @@ sub mergefrag {
   my $command = "";
   my ($User_Preferences, $Sample) = @_;
   #
-  print "Merging ".length($User_Preferences->{"CHR"}." fragments\n";
+  my @chr = split(" ", $User_Preferences->{"CHR"});
+  for (my $i = 0; $i < scalar @chr; $i ++) { $chr[$i] = "$Sample\_".$chr[$i].".seqz"; }
+  my $list = join(" ", @chr);
+
+  print "Merging ".scalar(@chr)." fragments\n";
   # command line
-  $command .= "cat $Sample\_chr*.seqz \| ";
-  $command .= "gawk \'\{if \(NR\!=1 && $1 != \"chromosome\"\) \{print $0\}\}\' \| ";
-  $command .= "bgzip > $Sample.seqz.gz";
+  $command .= "cat $list \| ";
+  $command .= "gawk \'\{if \(NR\!=1 && \$1 != \"chromosome\"\) \{print \$0\}\}\' \| ";
+  $command .= "bgzip -@ ".$User_Preferences->{"BGZIP_NT"}." > $Sample.seqz.gz";
   #
-  print $command,"\n";
-  #system $command;
+  print $command,"\n\n";
+  system $command;
 }
 
 # ------------------------------------------------------------------------------------------------------------------
@@ -112,12 +121,30 @@ sub seqz_binning {
   #
   print "Biining $Sample.seqz.gz\n";
   # command line
-  $command .= "sequenza-utils seqz_binning --seqz $Sample.seqz.gz ";
-  $command .= "--window ".$User_Preferences->{"WIN"};
-  $command .= "-o $Sample.bin50.seqz.gz";
+  $command .= "sequenza-utils seqz_binning --seqz $Sample.seqz.gz";
+  $command .= " --window ".$User_Preferences->{"WIN"};
+  $command .= " -o $Sample.bin50.seqz.gz";
   #
   print $command,"\n";
-  #system $command;
+  system $command;
+}
+
+# ------------------------------------------------------------------------------------------------------------------
+# Sub functions: sequenza-utils: step 3
+# seqz_binning: bin big seqz file with windows 50mb/win
+# ------------------------------------------------------------------------------------------------------------------
+
+sub add_seqz_header {
+  my $command = "";
+  my ($User_Preferences, $Sample) = @_;
+  #
+  print "Add header line to $Sample.bin50.seqz.gz\n";
+  # command line
+  $command .= "zcat header.seqz.gz $Sample.bin50.seqz.gz | ";
+  $command .= "bgzip -@ ".$User_Preferences->{"BGZIP_NT"}." > $Sample.bin50.head.seqz.gz";
+  #
+  print $command,"\n";
+  system $command;
 }
 
 # ------------------------------------------------------------------------------------------------------------------
@@ -129,7 +156,11 @@ sub clean {
   my $sample = $_[0];
   #
   print "rm $sample\_chr*.seqz\n";
-  #system "rm $sample\_chr*.seqz";
+  print "rm $sample.seqz.gz\n";
+  print "rm $sample.bin50.seqz.gz\n\n";
+  system "rm $sample\_chr*.seqz";
+  system "rm $sample.seqz.gz";
+  system "rm $sample.bin50.seqz.gz";
 }
 
 # ------------------------------------------------------------------------------------------------------------------
@@ -143,10 +174,10 @@ sub sequenza_R {
   #
   print "Running sequenza R\n";
   #
-  $command = "Rscript sequenza.R $Sample.bin50.seqz.gz $Sample ".$User_Preferences->{"OUTPUT"}."\n";
+  $command = "Rscript sequenza.R $Sample.bin50.head.seqz.gz $Sample\n";
   #
   print $command;
-  #system $command;
+  system $command;
 }
 
 # ------------------------------------------------------------------------------------------------------------------
