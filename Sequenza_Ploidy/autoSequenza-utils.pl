@@ -48,7 +48,7 @@ while (<$conf>) {
 # Default: first line is the header line
 my @bams = split("\n", `cat $User_Preferences{"INPUT"}`);
 for (my $i = 1; $i < scalar @bams; $i ++) {
-  my ($Sample, $normal, $tumour) = split("\t", $bams[$i]);
+  my ($Sample_N, $Sample, $normal, $tumour) = split("\t", $bams[$i]);
   # Call "bam2seqz" function to prepare the fragmented seqz files
   &bam2seqz(\%User_Preferences, $Sample, $normal, $tumour, $i);
   # Call "merge" function to merge all fragments
